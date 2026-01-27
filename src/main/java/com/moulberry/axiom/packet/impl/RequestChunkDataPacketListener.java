@@ -25,7 +25,7 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -55,7 +55,7 @@ import java.util.concurrent.CompletableFuture;
 
 public class RequestChunkDataPacketListener implements PacketHandler {
 
-    private static final ResourceLocation RESPONSE_ID = VersionHelper.createResourceLocation("axiom:response_chunk_data");
+    private static final Identifier RESPONSE_ID = VersionHelper.createIdentifier("axiom:response_chunk_data");
 
     private final AxiomPaper plugin;
     public RequestChunkDataPacketListener(AxiomPaper plugin) {
@@ -80,7 +80,7 @@ public class RequestChunkDataPacketListener implements PacketHandler {
             return;
         }
 
-        MinecraftServer server = player.getServer();
+        MinecraftServer server = player.level().getServer();
         if (server == null) {
             sendEmptyResponse(player, id);
             friendlyByteBuf.readerIndex(friendlyByteBuf.writerIndex());

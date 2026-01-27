@@ -3,7 +3,7 @@ package com.moulberry.axiom.world_properties.server;
 import com.moulberry.axiom.AxiomPaper;
 import com.moulberry.axiom.world_properties.WorldPropertyDataType;
 import com.moulberry.axiom.world_properties.WorldPropertyWidgetType;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.craftbukkit.util.CraftNamespacedKey;
@@ -11,7 +11,7 @@ import org.bukkit.entity.Player;
 
 public abstract class ServerWorldPropertyBase<T> {
 
-    private final ResourceLocation id;
+    private final Identifier id;
     /*package-private*/ final String name;
     /*package-private*/ final boolean localizeName;
     /*package-private*/ WorldPropertyWidgetType<T> widget;
@@ -27,7 +27,7 @@ public abstract class ServerWorldPropertyBase<T> {
 
     public abstract PropertyUpdateResult handleUpdateProperty(Player player, World world, T value);
 
-    public ResourceLocation getId() {
+    public Identifier getId() {
         return this.id;
     }
 

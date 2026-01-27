@@ -6,7 +6,7 @@ import com.moulberry.axiom.restrictions.AxiomPermission;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 
@@ -28,7 +28,7 @@ public class ServerBlueprintManager {
     }
 
     private static final int MAX_SIZE = 1000000;
-    private static final ResourceLocation PACKET_BLUEPRINT_MANIFEST_IDENTIFIER = VersionHelper.createResourceLocation("axiom:blueprint_manifest");
+    private static final Identifier PACKET_BLUEPRINT_MANIFEST_IDENTIFIER = VersionHelper.createIdentifier("axiom:blueprint_manifest");
 
     public static void sendManifest(List<ServerPlayer> serverPlayers) {
         if (registry != null) {

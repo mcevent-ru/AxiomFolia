@@ -12,7 +12,7 @@ import io.netty.buffer.Unpooled;
 import net.kyori.adventure.text.Component;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.messaging.PluginMessageListener;
 import org.jetbrains.annotations.NotNull;
@@ -30,7 +30,7 @@ public class SetWorldPropertyListener implements PacketHandler {
             return;
         }
 
-        ResourceLocation id = friendlyByteBuf.readResourceLocation();
+        Identifier id = friendlyByteBuf.readIdentifier();
         int type = friendlyByteBuf.readVarInt();
         byte[] data = friendlyByteBuf.readByteArray();
         int updateId = friendlyByteBuf.readVarInt();

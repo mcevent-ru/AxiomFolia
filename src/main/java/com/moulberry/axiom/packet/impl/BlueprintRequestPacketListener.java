@@ -13,7 +13,7 @@ import net.kyori.adventure.text.Component;
 import net.minecraft.SharedConstants;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.messaging.PluginMessageListener;
@@ -26,7 +26,7 @@ public class BlueprintRequestPacketListener implements PacketHandler {
         this.plugin = plugin;
     }
 
-    private static final ResourceLocation RESPONSE_PACKET_IDENTIFIER = VersionHelper.createResourceLocation("axiom:response_blueprint");
+    private static final Identifier RESPONSE_PACKET_IDENTIFIER = VersionHelper.createIdentifier("axiom:response_blueprint");
 
     @Override
     public void onReceive(Player player, RegistryFriendlyByteBuf friendlyByteBuf) {
@@ -35,7 +35,7 @@ public class BlueprintRequestPacketListener implements PacketHandler {
         }
 
         if (this.plugin.isMismatchedDataVersion(player.getUniqueId())) {
-            player.sendMessage(Component.text("Axiom+ViaVersion: This feature isn't supported. Switch your client version to " + SharedConstants.VERSION_STRING + " to use this"));
+            player.sendMessage(Component.text("Axiom+ViaVersion: This feature isn't supported. Switch your client version to " + VersionHelper.getVersion() + " to use this"));
             return;
         }
 

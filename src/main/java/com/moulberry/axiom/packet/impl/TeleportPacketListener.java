@@ -47,12 +47,12 @@ public class TeleportPacketListener implements PacketHandler {
 
         // Call unknown teleport event
         AxiomUnknownTeleportEvent preTeleportEvent = new AxiomUnknownTeleportEvent(player,
-                CraftNamespacedKey.fromMinecraft(resourceKey.location()), x, y, z, yRot, xRot);
+                CraftNamespacedKey.fromMinecraft(resourceKey.identifier()), x, y, z, yRot, xRot);
         Bukkit.getPluginManager().callEvent(preTeleportEvent);
         if (preTeleportEvent.isCancelled()) return;
 
         // Get bukkit world
-        NamespacedKey namespacedKey = new NamespacedKey(resourceKey.location().getNamespace(), resourceKey.location().getPath());
+        NamespacedKey namespacedKey = new NamespacedKey(resourceKey.identifier().getNamespace(), resourceKey.identifier().getPath());
         World world = Bukkit.getWorld(namespacedKey);
         if (world == null) return;
 

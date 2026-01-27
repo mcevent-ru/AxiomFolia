@@ -11,7 +11,7 @@ import io.netty.buffer.Unpooled;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.block.state.BlockState;
@@ -29,8 +29,8 @@ import java.util.Set;
 @ApiStatus.Internal
 public class ImplServerCustomDisplays {
 
-    private static final Map<ResourceLocation, ImplAxiomCustomDisplay> registeredDisplays = new LinkedHashMap<>();
-    private static final Map<Plugin, List<ResourceLocation>> byPlugin = new HashMap<>();
+    private static final Map<Identifier, ImplAxiomCustomDisplay> registeredDisplays = new LinkedHashMap<>();
+    private static final Map<Plugin, List<Identifier>> byPlugin = new HashMap<>();
     private static boolean pendingReregisterAll = false;
     private static boolean hasRegisteredToAPlayer = false;
 
@@ -63,7 +63,7 @@ public class ImplServerCustomDisplays {
     }
 
     public static void unregisterAll(Plugin plugin) {
-        List<ResourceLocation> remove = byPlugin.remove(plugin);
+        List<Identifier> remove = byPlugin.remove(plugin);
         if (remove == null || remove.isEmpty()) {
             return;
         }
@@ -72,7 +72,7 @@ public class ImplServerCustomDisplays {
             pendingReregisterAll = true;
         }
 
-        for (ResourceLocation id : remove) {
+        for (Identifier id : remove) {
             registeredDisplays.remove(id);
         }
     }

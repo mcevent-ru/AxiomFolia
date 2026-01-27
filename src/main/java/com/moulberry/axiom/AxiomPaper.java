@@ -8,6 +8,7 @@ import com.moulberry.axiom.event.AxiomCreateWorldPropertiesEvent;
 import com.moulberry.axiom.event.AxiomModifyWorldEvent;
 import com.moulberry.axiom.integration.coreprotect.CoreProtectIntegration;
 import com.moulberry.axiom.integration.plotsquared.PlotSquaredIntegration;
+import com.moulberry.axiom.listener.LuckPermsListener;
 import com.moulberry.axiom.listener.NoPhysicalTriggerListener;
 import com.moulberry.axiom.operations.OperationQueue;
 import com.moulberry.axiom.operations.PendingOperation;
@@ -47,6 +48,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import org.bukkit.*;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.Configuration;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -93,7 +95,8 @@ public class AxiomPaper extends JavaPlugin implements Listener {
     private final Set<EntityType<?>> whitelistedEntities = new HashSet<>();
     private final Set<EntityType<?>> blacklistedEntities = new HashSet<>();
 
-    private int allowedDispatchSendsPerSecond = 1024;
+    private int defaultAllowedDispatchSendsPerSecond = 1024;
+    private LinkedHashMap<String, Integer> allowedDispatchSendOverrides = new LinkedHashMap<>();
 
     private boolean registeredNoPhysicalTriggerListener = false;
     public boolean logCoreProtectChanges = true;
@@ -108,6 +111,9 @@ public class AxiomPaper extends JavaPlugin implements Listener {
 
     public int configRemovedEntries = 0;
     public int configAddedEntries = 0;
+
+    private boolean clearCachedPermissionsOnTick = true;
+    private int checkAxiomEnableDisableTimer = 0;
 
     @Override
     public void onEnable() {
@@ -214,7 +220,7 @@ public class AxiomPaper extends JavaPlugin implements Listener {
                 }
             });
             RegistryFriendlyByteBuf friendlyByteBuf = new RegistryFriendlyByteBuf(Unpooled.buffer(), MinecraftServer.getServer().registryAccess());
-            protocol.codec().encode(friendlyByteBuf, new ServerboundCustomPayloadPacket(VersionHelper.createCustomPayload(VersionHelper.createResourceLocation("dummy"), new byte[0])));
+            protocol.codec().encode(friendlyByteBuf, new ServerboundCustomPayloadPacket(VersionHelper.createCustomPayload(VersionHelper.createIdentifier("dummy"), new byte[0])));
             int payloadId = friendlyByteBuf.readVarInt();
 
             ChannelInitializeListenerHolder.addListener(Key.key("axiom:handle_big_payload"), new ChannelInitializeListener() {
@@ -248,9 +254,23 @@ public class AxiomPaper extends JavaPlugin implements Listener {
 
         this.logCoreProtectChanges = this.configuration.getBoolean("log-core-protect-changes");
 
-        this.allowedDispatchSendsPerSecond = this.configuration.getInt("block-buffer-rate-limit");
-        if (this.allowedDispatchSendsPerSecond <= 0) {
-            this.allowedDispatchSendsPerSecond = 1024;
+        this.defaultAllowedDispatchSendsPerSecond = this.configuration.getInt("block-buffer-rate-limit");
+        if (this.defaultAllowedDispatchSendsPerSecond <= 0) {
+            this.defaultAllowedDispatchSendsPerSecond = 1024;
+        }
+        ConfigurationSection limits = this.configuration.getConfigurationSection("limits");
+        if (limits != null) {
+            for (String key : limits.getKeys(false)) {
+                ConfigurationSection values = limits.getConfigurationSection(key);
+                if (values == null) {
+                    continue;
+                }
+
+                int allowedDispatchSends = values.getInt("block-buffer-rate-limit");
+                if (allowedDispatchSends > 0) {
+                    this.allowedDispatchSendOverrides.put(key, allowedDispatchSends);
+                }
+            }
         }
 
         try {
@@ -267,6 +287,12 @@ public class AxiomPaper extends JavaPlugin implements Listener {
             AxiomMigrateCommand.register(manager);
         } catch (Exception e) {
             e.printStackTrace();
+        }
+
+        if (Bukkit.getPluginManager().isPluginEnabled("LuckPerms")) {
+            this.getLogger().info("LuckPerms integration enabled");
+            this.clearCachedPermissionsOnTick = false;
+            LuckPermsListener.register(this);
         }
 
         if (CoreProtectIntegration.isEnabled()) {
@@ -366,47 +392,64 @@ public class AxiomPaper extends JavaPlugin implements Listener {
         FORCE_SMALL
     }
 
+    public void clearCachedPermissionsFor(UUID uuid) {
+        this.playerPermissions.remove(uuid);
+    }
+
     private void tick() {
-        Set<UUID> stillActiveAxiomPlayers = new HashSet<>();
-        Set<UUID> stillFailedAxiomPlayers = new HashSet<>();
+        if (this.clearCachedPermissionsOnTick) {
+            this.playerPermissions.clear();
+        }
 
-        // Clear cached permissions
-        this.playerPermissions.clear();
+        this.checkAxiomEnableDisableTimer += 1;
+        if (this.checkAxiomEnableDisableTimer >= 20) {
+            this.checkAxiomEnableDisableTimer = 0;
 
-        for (Player player : Bukkit.getServer().getOnlinePlayers()) {
-            UUID uuid = player.getUniqueId();
-            if (this.activeAxiomPlayers.contains(uuid)) {
-                if (!this.hasPermission(player, AxiomPermission.USE)) {
-                    FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
-                    buf.writeBoolean(false);
-                    byte[] bytes = ByteBufUtil.getBytes(buf);
-                    VersionHelper.sendCustomPayload(player, "axiom:enable", bytes);
+            Set<UUID> stillActiveAxiomPlayers = new HashSet<>();
+            Set<UUID> stillFailedAxiomPlayers = new HashSet<>();
 
-                    this.failedPermissionAxiomPlayers.add(uuid);
-                    stillFailedAxiomPlayers.add(uuid);
-                } else {
-                    stillActiveAxiomPlayers.add(uuid);
-                    tickPlayer(player);
+            for (Player player : Bukkit.getServer().getOnlinePlayers()) {
+                UUID uuid = player.getUniqueId();
+                if (this.activeAxiomPlayers.contains(uuid)) {
+                    if (!this.hasPermission(player, AxiomPermission.USE)) {
+                        FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
+                        buf.writeBoolean(false);
+                        byte[] bytes = ByteBufUtil.getBytes(buf);
+                        VersionHelper.sendCustomPayload(player, "axiom:enable", bytes);
+
+                        this.failedPermissionAxiomPlayers.add(uuid);
+                        stillFailedAxiomPlayers.add(uuid);
+                    } else {
+                        stillActiveAxiomPlayers.add(uuid);
+                        tickPlayer(player, true);
+                    }
+                } else if (this.failedPermissionAxiomPlayers.contains(uuid)) {
+                    if (this.hasPermission(player, AxiomPermission.USE)) {
+                        VersionHelper.sendCustomPayload(player, "axiom:redo_handshake", new byte[]{});
+                        this.failedPermissionAxiomPlayers.remove(uuid);
+                    } else {
+                        stillFailedAxiomPlayers.add(uuid);
+                    }
                 }
-            } else if (this.failedPermissionAxiomPlayers.contains(uuid)) {
-                if (this.hasPermission(player, AxiomPermission.USE)) {
-                    VersionHelper.sendCustomPayload(player, "axiom:redo_handshake", new byte[]{});
-                    this.failedPermissionAxiomPlayers.remove(uuid);
-                } else {
-                    stillFailedAxiomPlayers.add(uuid);
+            }
+
+            this.activeAxiomPlayers.retainAll(stillActiveAxiomPlayers);
+            this.availableDispatchSends.keySet().retainAll(stillActiveAxiomPlayers);
+            this.playerRestrictions.keySet().retainAll(stillActiveAxiomPlayers);
+            this.playerBlockRegistry.keySet().retainAll(stillActiveAxiomPlayers);
+            this.playerProtocolVersion.keySet().retainAll(stillActiveAxiomPlayers);
+            this.lastPlotBoundsForPlayers.keySet().retainAll(stillActiveAxiomPlayers);
+            this.noPhysicalTriggerPlayers.retainAll(stillActiveAxiomPlayers);
+
+            this.failedPermissionAxiomPlayers.retainAll(stillFailedAxiomPlayers);
+        } else {
+            for (UUID uuid : this.activeAxiomPlayers) {
+                Player player = Bukkit.getPlayer(uuid);
+                if (player != null) {
+                    tickPlayer(player, false);
                 }
             }
         }
-
-        this.activeAxiomPlayers.retainAll(stillActiveAxiomPlayers);
-        this.availableDispatchSends.keySet().retainAll(stillActiveAxiomPlayers);
-        this.playerRestrictions.keySet().retainAll(stillActiveAxiomPlayers);
-        this.playerBlockRegistry.keySet().retainAll(stillActiveAxiomPlayers);
-        this.playerProtocolVersion.keySet().retainAll(stillActiveAxiomPlayers);
-        this.lastPlotBoundsForPlayers.keySet().retainAll(stillActiveAxiomPlayers);
-        this.noPhysicalTriggerPlayers.retainAll(stillActiveAxiomPlayers);
-
-        this.failedPermissionAxiomPlayers.retainAll(stillFailedAxiomPlayers);
 
         this.operationQueue.tick();
 
@@ -421,13 +464,24 @@ public class AxiomPaper extends JavaPlugin implements Listener {
         this.operationQueue.add(level, operation);
     }
 
+    private int getAllowedDispatchSendsPerSecond(Player player) {
+        for (Map.Entry<String, Integer> entry : this.allowedDispatchSendOverrides.entrySet()) {
+            if (player.hasPermission("axiomlimits." + entry.getKey())) {
+                return entry.getValue();
+            }
+        }
+        return this.defaultAllowedDispatchSendsPerSecond;
+    }
+
     public boolean consumeDispatchSends(Player player, int sends, int clientAvailableDispatchSends) {
-        int currentSends = this.availableDispatchSends.getOrDefault(player.getUniqueId(), this.allowedDispatchSendsPerSecond*20);
+        int allowedDispatchSendsPerSecond = this.getAllowedDispatchSendsPerSecond(player);
+
+        int currentSends = this.availableDispatchSends.getOrDefault(player.getUniqueId(), allowedDispatchSendsPerSecond*20);
         currentSends -= sends*20;
         currentSends = Math.min(currentSends, clientAvailableDispatchSends*20);
         this.availableDispatchSends.put(player.getUniqueId(), currentSends);
 
-        if (currentSends < -this.allowedDispatchSendsPerSecond*20) {
+        if (currentSends < -allowedDispatchSendsPerSecond*20) {
             player.kick(net.kyori.adventure.text.Component.text("You are sending updates too fast!"));
             return false;
         } else {
@@ -442,39 +496,43 @@ public class AxiomPaper extends JavaPlugin implements Listener {
         this.playerPermissions.remove(player.getUniqueId());
         this.playerRestrictions.remove(player.getUniqueId());
 
-        this.tickPlayer(player);
+        this.tickPlayer(player, true);
     }
 
-    private void tickPlayer(Player player) {
+    private void tickPlayer(Player player, boolean updateRestrictions) {
+        int allowedDispatchSendsPerSecond = this.getAllowedDispatchSendsPerSecond(player);
+
         if (!this.availableDispatchSends.containsKey(player.getUniqueId())) {
-            this.availableDispatchSends.put(player.getUniqueId(), this.allowedDispatchSendsPerSecond*20);
-            sendUpdateAvailableDispatchSends(player, this.allowedDispatchSendsPerSecond, this.allowedDispatchSendsPerSecond);
+            this.availableDispatchSends.put(player.getUniqueId(), allowedDispatchSendsPerSecond*20);
+            sendUpdateAvailableDispatchSends(player, allowedDispatchSendsPerSecond, allowedDispatchSendsPerSecond);
         } else {
             int previousAllowed20 = this.availableDispatchSends.getInt(player.getUniqueId());
-            int newAllowed20 = Math.min(this.allowedDispatchSendsPerSecond*20, previousAllowed20 + this.allowedDispatchSendsPerSecond);
+            int newAllowed20 = Math.min(allowedDispatchSendsPerSecond*20, previousAllowed20 + allowedDispatchSendsPerSecond);
             this.availableDispatchSends.put(player.getUniqueId(), newAllowed20);
 
             int previousAllowed = previousAllowed20 / 20;
             int newAllowed = newAllowed20 / 20;
             if (previousAllowed != newAllowed) {
-                sendUpdateAvailableDispatchSends(player, newAllowed - previousAllowed, this.allowedDispatchSendsPerSecond);
+                sendUpdateAvailableDispatchSends(player, newAllowed - previousAllowed, allowedDispatchSendsPerSecond);
             }
         }
 
-        Restrictions restrictions = this.calculateRestrictions(player);
+        if (updateRestrictions) {
+            Restrictions restrictions = this.calculateRestrictions(player);
 
-        boolean restrictionsChanged;
+            boolean restrictionsChanged;
 
-        if (this.playerRestrictions.containsKey(player.getUniqueId())) {
-            Restrictions oldRestrictions = this.playerRestrictions.get(player.getUniqueId());
-            restrictionsChanged = !Objects.equals(restrictions, oldRestrictions);
-        } else {
-            restrictionsChanged = true;
-        }
+            if (this.playerRestrictions.containsKey(player.getUniqueId())) {
+                Restrictions oldRestrictions = this.playerRestrictions.get(player.getUniqueId());
+                restrictionsChanged = !Objects.equals(restrictions, oldRestrictions);
+            } else {
+                restrictionsChanged = true;
+            }
 
-        if (restrictionsChanged) {
-            restrictions.send(player);
-            this.playerRestrictions.put(player.getUniqueId(), restrictions);
+            if (restrictionsChanged) {
+                restrictions.send(player);
+                this.playerRestrictions.put(player.getUniqueId(), restrictions);
+            }
         }
     }
 
@@ -609,7 +667,7 @@ public class AxiomPaper extends JavaPlugin implements Listener {
 
     private AxiomPermissionSet calculatePermissions(Player player) {
         if (player.isOp()) {
-            return AxiomPermissionSet.ALL;
+            return AxiomPermissionSet.NONE;
         }
 
         EnumSet<AxiomPermission> allowed = EnumSet.noneOf(AxiomPermission.class);
@@ -729,6 +787,8 @@ public class AxiomPaper extends JavaPlugin implements Listener {
 
     @EventHandler
     public void onChangedWorld(PlayerChangedWorldEvent event) {
+        this.clearCachedPermissionsFor(event.getPlayer().getUniqueId());
+
         if (!this.activeAxiomPlayers.contains(event.getPlayer().getUniqueId())) {
             return;
         }
@@ -748,7 +808,7 @@ public class AxiomPaper extends JavaPlugin implements Listener {
 
     @EventHandler
     public void onGameRuleChanged(WorldGameRuleChangeEvent event) {
-        if (event.getGameRule() == GameRule.DO_WEATHER_CYCLE) {
+        if (event.getGameRule() == GameRules.ADVANCE_WEATHER) {
             ServerWorldPropertiesRegistry.PAUSE_WEATHER.setValue(event.getWorld(), !Boolean.parseBoolean(event.getValue()));
         }
     }

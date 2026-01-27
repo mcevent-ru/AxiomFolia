@@ -4,6 +4,7 @@ import com.google.common.util.concurrent.RateLimiter;
 import com.mojang.serialization.Codec;
 import com.moulberry.axiom.AxiomConstants;
 import com.moulberry.axiom.AxiomPaper;
+import com.moulberry.axiom.VersionHelper;
 import com.moulberry.axiom.viaversion.UnknownVersionHelper;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
@@ -34,7 +35,7 @@ public class BlockBuffer {
     private static final Map<BlockState, IdMap<BlockState>> ID_MAPPERS = new HashMap<>();
 
     public static PalettedContainer<BlockState> createPalettedContainerForEmptyBlockState(BlockState emptyBlockState) {
-        return new PalettedContainer<>(BlockBuffer.getIdMapForEmptyBlockState(emptyBlockState), EMPTY_STATE, PalettedContainer.Strategy.SECTION_STATES);
+        return VersionHelper.createPalettedContainer(BlockBuffer.getIdMapForEmptyBlockState(emptyBlockState), EMPTY_STATE);
     }
 
     public static IdMap<BlockState> getIdMapForEmptyBlockState(BlockState empty) {
@@ -70,7 +71,7 @@ public class BlockBuffer {
                 blockStateCodec = BlockState.CODEC.xmap(mapFunction, mapFunction);
             }
 
-            return PalettedContainer.codecRW(mapping, blockStateCodec, PalettedContainer.Strategy.SECTION_STATES, EMPTY_STATE);
+            return VersionHelper.createPalettedContainerCodec(blockStateCodec, mapping, EMPTY_STATE);
         });
     }
 
@@ -203,8 +204,7 @@ public class BlockBuffer {
     public PalettedContainer<BlockState> getOrCreateSection(long id) {
         if (this.last == null || id != this.lastId) {
             this.lastId = id;
-            this.last = this.values.computeIfAbsent(id, k -> new PalettedContainer<>(this.registry,
-                             EMPTY_STATE, PalettedContainer.Strategy.SECTION_STATES));
+            this.last = this.values.computeIfAbsent(id, k -> VersionHelper.createPalettedContainer(this.registry, EMPTY_STATE));
         }
 
         return this.last;

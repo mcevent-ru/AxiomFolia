@@ -9,7 +9,7 @@ import net.minecraft.commands.arguments.blocks.BlockStateParser;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamEncoder;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
@@ -33,7 +33,7 @@ import java.util.Map;
 import java.util.Set;
 
 @ApiStatus.Internal
-public record ImplAxiomCustomDisplay(ResourceLocation id, String searchKey, ItemStack itemStack,
+public record ImplAxiomCustomDisplay(Identifier id, String searchKey, ItemStack itemStack,
                                      @Nullable Vector3f defaultTranslation, @Nullable Quaternionf defaultLeftRotation,
                                      @Nullable Vector3f defaultScale, @Nullable Quaternionf defaultRightRotation,
                                      int defaultBlockBrightnessOverride, int defaultSkyBrightnessOverride) {
@@ -46,14 +46,14 @@ public record ImplAxiomCustomDisplay(ResourceLocation id, String searchKey, Item
             defaultBlockBrightnessOverride, defaultSkyBrightnessOverride);
     }
 
-    private static ResourceLocation convertKey(Key key) {
-        return VersionHelper.createResourceLocation(key.namespace(), key.value());
+    private static Identifier convertKey(Key key) {
+        return VersionHelper.createIdentifier(key.namespace(), key.value());
     }
 
     public void write(RegistryFriendlyByteBuf friendlyByteBuf) {
         ItemStack.STREAM_CODEC.encode(friendlyByteBuf, this.itemStack);
 
-        friendlyByteBuf.writeResourceLocation(this.id);
+        friendlyByteBuf.writeIdentifier(this.id);
         friendlyByteBuf.writeUtf(this.searchKey);
 
         if (this.defaultTranslation != null || this.defaultLeftRotation != null || this.defaultScale != null || this.defaultRightRotation != null) {

@@ -1,12 +1,18 @@
 package com.moulberry.axiom;
 
+import com.mojang.serialization.Codec;
 import io.netty.buffer.Unpooled;
+import net.minecraft.SharedConstants;
+import net.minecraft.core.IdMap;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
 import net.minecraft.network.protocol.common.custom.DiscardedPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.PalettedContainer;
+import net.minecraft.world.level.chunk.Strategy;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 
@@ -18,11 +24,11 @@ public class VersionHelper {
 
     @FunctionalInterface
     private interface DiscardedPayloadConstructor {
-        DiscardedPayload create(ResourceLocation id, byte[] data) throws IllegalAccessException, InstantiationException, InvocationTargetException;
+        DiscardedPayload create(Identifier id, byte[] data) throws IllegalAccessException, InstantiationException, InvocationTargetException;
     }
     private static DiscardedPayloadConstructor discardedPayloadConstructor = null;
 
-    public static DiscardedPayload createCustomPayload(ResourceLocation id, byte[] data) {
+    public static DiscardedPayload createCustomPayload(Identifier id, byte[] data) {
         if (discardedPayloadConstructor == null) {
             findDiscardedPayloadConstructor();
         }
@@ -38,7 +44,7 @@ public class VersionHelper {
             var parameters = ctor.getParameters();
             if (parameters.length == 2) {
                 var parameter1 = parameters[0].getType();
-                if (ResourceLocation.class.isAssignableFrom(parameter1)) {
+                if (Identifier.class.isAssignableFrom(parameter1)) {
                     var parameter2 = parameters[1].getType();
                     if (byte[].class.isAssignableFrom(parameter2)) {
                         discardedPayloadConstructor = (id1, data1) -> (DiscardedPayload) ctor.newInstance(id1, data1);
@@ -60,19 +66,19 @@ public class VersionHelper {
     }
 
     public static void sendCustomPayload(ServerPlayer serverPlayer, String id, byte[] data) {
-        sendCustomPayload(serverPlayer, createResourceLocation(id), data);
+        sendCustomPayload(serverPlayer, createIdentifier(id), data);
     }
 
-    public static void sendCustomPayload(ServerPlayer serverPlayer, ResourceLocation id, byte[] data) {
+    public static void sendCustomPayload(ServerPlayer serverPlayer, Identifier id, byte[] data) {
         var payload = createCustomPayload(id, data);
         serverPlayer.connection.send(new ClientboundCustomPayloadPacket(payload));
     }
 
     public static void sendCustomPayloadToAll(List<ServerPlayer> players, String id, byte[] data) {
-        sendCustomPayloadToAll(players, createResourceLocation(id), data);
+        sendCustomPayloadToAll(players, createIdentifier(id), data);
     }
 
-    public static void sendCustomPayloadToAll(List<ServerPlayer> players, ResourceLocation id, byte[] data) {
+    public static void sendCustomPayloadToAll(List<ServerPlayer> players, Identifier id, byte[] data) {
         if (players.isEmpty()) {
             return;
         }
@@ -84,12 +90,12 @@ public class VersionHelper {
         }
     }
 
-    public static ResourceLocation createResourceLocation(String composed) {
-        return ResourceLocation.parse(composed);
+    public static Identifier createIdentifier(String composed) {
+        return Identifier.parse(composed);
     }
 
-    public static ResourceLocation createResourceLocation(String namespace, String path) {
-        return ResourceLocation.fromNamespaceAndPath(namespace, path);
+    public static Identifier createIdentifier(String namespace, String path) {
+        return Identifier.fromNamespaceAndPath(namespace, path);
     }
 
     public static ListTag getList(CompoundTag tag, String key, int type) {
@@ -102,6 +108,18 @@ public class VersionHelper {
         } else {
             return list;
         }
+    }
+
+    public static PalettedContainer<BlockState> createPalettedContainer(IdMap<BlockState> map, BlockState defaultValue) {
+        return new PalettedContainer<>(defaultValue, Strategy.createForBlockStates(map));
+    }
+
+    public static Codec<PalettedContainer<BlockState>> createPalettedContainerCodec(Codec<BlockState> codec, IdMap<BlockState> map, BlockState defaultValue) {
+        return PalettedContainer.codecRW(codec, Strategy.createForBlockStates(map), defaultValue);
+    }
+
+    public static String getVersion() {
+        return SharedConstants.getCurrentVersion().name();
     }
 
 }

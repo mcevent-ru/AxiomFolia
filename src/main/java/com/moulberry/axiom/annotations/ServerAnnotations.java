@@ -40,7 +40,7 @@ public class ServerAnnotations {
 
         byte[] bytes = ByteBufUtil.getBytes(friendlyByteBuf);
         for (ServerPlayer serverPlayer : players) {
-            VersionHelper.sendCustomPayload(serverPlayer, VersionHelper.createResourceLocation("axiom:annotation_update"), bytes);
+            VersionHelper.sendCustomPayload(serverPlayer, VersionHelper.createIdentifier("axiom:annotation_update"), bytes);
         }
     }
 

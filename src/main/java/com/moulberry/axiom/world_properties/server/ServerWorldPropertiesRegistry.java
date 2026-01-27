@@ -6,9 +6,10 @@ import com.moulberry.axiom.world_properties.WorldPropertyWidgetType;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import org.bukkit.GameRule;
+import org.bukkit.GameRules;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.craftbukkit.CraftWorld;
@@ -21,7 +22,7 @@ import java.util.*;
 public class ServerWorldPropertiesRegistry {
 
     private final LinkedHashMap<WorldPropertyCategory, List<ServerWorldPropertyHolder<?>>> propertyList = new LinkedHashMap<>();
-    private final Map<ResourceLocation, ServerWorldPropertyHolder<?>> propertyMap = new HashMap<>();
+    private final Map<Identifier, ServerWorldPropertyHolder<?>> propertyMap = new HashMap<>();
     private final Reference<World> world;
 
     public ServerWorldPropertiesRegistry(Reference<World> world) {
@@ -29,7 +30,7 @@ public class ServerWorldPropertiesRegistry {
         this.registerDefault();
     }
 
-    public ServerWorldPropertyHolder<?> getById(ResourceLocation resourceLocation) {
+    public ServerWorldPropertyHolder<?> getById(Identifier resourceLocation) {
         return propertyMap.get(resourceLocation);
     }
 
@@ -49,7 +50,7 @@ public class ServerWorldPropertiesRegistry {
         this.propertyList.put(category, holders);
 
         for (ServerWorldPropertyHolder<?> holder : holders) {
-            ResourceLocation id = holder.getId();
+            Identifier id = holder.getId();
             if (this.propertyMap.containsKey(id)) {
                 throw new RuntimeException("Duplicate property: " + id);
             }
@@ -81,9 +82,9 @@ public class ServerWorldPropertiesRegistry {
     public static final ServerWorldProperty<Boolean> PAUSE_WEATHER = new ServerWorldProperty<>(
         new NamespacedKey("axiom", "pause_weather"),
         "axiom.editorui.window.world_properties.pause_weather",
-        true, WorldPropertyWidgetType.CHECKBOX, world -> !world.getGameRuleValue(GameRule.DO_WEATHER_CYCLE),
+        true, WorldPropertyWidgetType.CHECKBOX, world -> !world.getGameRuleValue(GameRules.ADVANCE_WEATHER),
         (player, world, bool) -> {
-            world.setGameRule(GameRule.DO_WEATHER_CYCLE, !bool);
+            world.setGameRule(GameRules.ADVANCE_WEATHER, !bool);
             return PropertyUpdateResult.UPDATE_WITHOUT_SYNC;
         }
     );

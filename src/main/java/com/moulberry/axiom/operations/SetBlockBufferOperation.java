@@ -264,7 +264,7 @@ public class SetBlockBufferOperation implements PendingOperation {
                                     }
                                 }
                                 if (blockEntity != null && blockEntityChunkMap != null) {
-                                    if (blockEntity instanceof GameMasterBlock && !player.hasPermissions(2)) {
+                                    if (blockEntity instanceof GameMasterBlock && !player.canUseGameMasterBlocks()) {
                                         sendGameMasterBlockWarning = true;
                                     } else {
                                         int key = x | (y << 4) | (z << 8);

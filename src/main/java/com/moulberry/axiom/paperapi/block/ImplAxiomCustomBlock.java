@@ -6,7 +6,7 @@ import net.minecraft.commands.arguments.blocks.BlockStateParser;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamEncoder;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
@@ -28,7 +28,7 @@ import java.util.Map;
 import java.util.Set;
 
 @ApiStatus.Internal
-public record ImplAxiomCustomBlock(ResourceLocation id, String translationKey, List<AxiomProperty> properties, List<BlockState> blocks,
+public record ImplAxiomCustomBlock(Identifier id, String translationKey, List<AxiomProperty> properties, List<BlockState> blocks,
                                    @Nullable ItemStack itemStack, Set<AxiomPlacementLogic> placementLogics, boolean sendServerPickBlockIfPossible,
                                    boolean preventRightClickInteraction, boolean preventShapeUpdates, boolean automaticRotationAndMirroring,
                                    Map<BlockState, BlockState> rotateYMappings, Map<BlockState, BlockState> flipXMappings,
@@ -45,8 +45,8 @@ public record ImplAxiomCustomBlock(ResourceLocation id, String translationKey, L
             convertBlockDataToBlockStates(flipYMappings), convertBlockDataToBlockStates(flipZMappings));
     }
 
-    private static ResourceLocation convertKey(Key key) {
-        return VersionHelper.createResourceLocation(key.namespace(), key.value());
+    private static Identifier convertKey(Key key) {
+        return VersionHelper.createIdentifier(key.namespace(), key.value());
     }
 
     private static List<BlockState> convertBlockDataToBlockStates(List<BlockData> blockData) {
@@ -70,7 +70,7 @@ public record ImplAxiomCustomBlock(ResourceLocation id, String translationKey, L
             ImplAxiomCustomBlock::writeBlockStateString :
             ImplAxiomCustomBlock::writeBlockStateId;
 
-        friendlyByteBuf.writeResourceLocation(this.id);
+        friendlyByteBuf.writeIdentifier(this.id);
         friendlyByteBuf.writeUtf(this.translationKey);
         friendlyByteBuf.writeCollection(this.properties, ImplAxiomCustomBlock::writeProperty);
         friendlyByteBuf.writeCollection(this.blocks, writeBlockState);

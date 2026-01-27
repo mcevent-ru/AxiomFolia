@@ -12,7 +12,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.*;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.datafix.DataFixers;
 import net.minecraft.util.datafix.fixes.References;
 import net.minecraft.world.level.block.Block;
@@ -97,7 +97,7 @@ public class BlueprintIo {
             long pos = blockPos.asLong();
 
             String id = blockEntityCompound.getStringOr("id", "");
-            Optional<Holder.Reference<BlockEntityType<?>>> typeOptional = BuiltInRegistries.BLOCK_ENTITY_TYPE.get(VersionHelper.createResourceLocation(id));
+            Optional<Holder.Reference<BlockEntityType<?>>> typeOptional = BuiltInRegistries.BLOCK_ENTITY_TYPE.get(VersionHelper.createIdentifier(id));
 
             if (typeOptional.isPresent()) {
                 BlockEntityType<?> type = typeOptional.get().value();
@@ -218,7 +218,7 @@ public class BlueprintIo {
             BlockEntityType<?> type = BlockEntityMap.get(blockState.getBlock());
             if (type == null) return;
 
-            ResourceLocation resourceLocation = BlockEntityType.getKey(type);
+            Identifier resourceLocation = BlockEntityType.getKey(type);
 
             if (resourceLocation != null) {
                 CompoundTag tag = compressedBlockEntity.decompress();

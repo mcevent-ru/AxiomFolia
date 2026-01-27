@@ -12,7 +12,7 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.level.Level;
 import org.bukkit.Bukkit;
 import org.bukkit.craftbukkit.CraftWorld;
@@ -59,7 +59,7 @@ public class SetTimePacketListener implements PacketHandler {
 
         // Change time
         if (time != null) level.setDayTime(time);
-        if (freezeTime != null) level.getGameRules().getRule(GameRules.RULE_DAYLIGHT).set(!freezeTime, null);
+        if (freezeTime != null) level.getGameRules().set(GameRules.ADVANCE_TIME, !freezeTime, null);
     }
 
 }

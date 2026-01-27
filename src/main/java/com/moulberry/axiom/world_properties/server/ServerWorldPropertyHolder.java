@@ -8,7 +8,7 @@ import com.moulberry.axiom.world_properties.WorldPropertyWidgetType;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
@@ -31,7 +31,7 @@ public class ServerWorldPropertyHolder<T> {
         this.property = property;
     }
 
-    public ResourceLocation getId() {
+    public Identifier getId() {
         return this.property.getId();
     }
 
@@ -74,7 +74,7 @@ public class ServerWorldPropertyHolder<T> {
     public void sync(World world) {
         FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
 
-        buf.writeResourceLocation(this.getId());
+        buf.writeIdentifier(this.getId());
         buf.writeVarInt(this.property.widget.dataType().getTypeId());
         buf.writeByteArray(this.property.widget.dataType().serialize(this.value));
 
@@ -92,7 +92,7 @@ public class ServerWorldPropertyHolder<T> {
     }
 
     public void write(FriendlyByteBuf friendlyByteBuf) {
-        friendlyByteBuf.writeResourceLocation(this.getId());
+        friendlyByteBuf.writeIdentifier(this.getId());
         friendlyByteBuf.writeUtf(this.property.name);
         friendlyByteBuf.writeBoolean(this.property.localizeName);
         this.property.widget.write(friendlyByteBuf);

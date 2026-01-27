@@ -196,7 +196,7 @@ public class ManipulateEntityPacketListener implements PacketHandler {
                                 continue;
                             }
 
-                            passenger.startRiding(entity, true);
+                            passenger.startRiding(entity, true, false);
                         }
                     }
                     case REMOVE_LIST -> {

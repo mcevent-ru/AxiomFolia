@@ -8,7 +8,7 @@ import io.netty.buffer.Unpooled;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.block.state.BlockState;
@@ -26,9 +26,9 @@ import java.util.Set;
 @ApiStatus.Internal
 public class ImplServerCustomBlocks {
 
-    private static final Map<ResourceLocation, ImplAxiomCustomBlock> registeredBlocks = new LinkedHashMap<>();
-    private static final Map<BlockState, ResourceLocation> registeredBlockStates = new HashMap<>();
-    private static final Map<Plugin, List<ResourceLocation>> byPlugin = new HashMap<>();
+    private static final Map<Identifier, ImplAxiomCustomBlock> registeredBlocks = new LinkedHashMap<>();
+    private static final Map<BlockState, Identifier> registeredBlockStates = new HashMap<>();
+    private static final Map<Plugin, List<Identifier>> byPlugin = new HashMap<>();
     private static boolean pendingReregisterAll = false;
     private static boolean hasRegisteredToAPlayer = false;
 
@@ -52,7 +52,7 @@ public class ImplServerCustomBlocks {
             throw new AxiomAlreadyRegisteredException("Custom block is already registered with id " + customBlock.id());
         }
         for (BlockState block : customBlock.blocks()) {
-            ResourceLocation existingId = registeredBlockStates.get(block);
+            Identifier existingId = registeredBlockStates.get(block);
             if (existingId != null) {
                 throw new AxiomAlreadyRegisteredException("BlockState " + block + " is already used by " + existingId);
             }
@@ -94,7 +94,7 @@ public class ImplServerCustomBlocks {
     }
 
     public static void unregisterAll(Plugin plugin) {
-        List<ResourceLocation> remove = byPlugin.remove(plugin);
+        List<Identifier> remove = byPlugin.remove(plugin);
         if (remove == null || remove.isEmpty()) {
             return;
         }
@@ -103,7 +103,7 @@ public class ImplServerCustomBlocks {
             pendingReregisterAll = true;
         }
 
-        for (ResourceLocation id : remove) {
+        for (Identifier id : remove) {
             ImplAxiomCustomBlock block = registeredBlocks.remove(id);
             for (BlockState blockState : block.blocks()) {
                 registeredBlockStates.remove(blockState);

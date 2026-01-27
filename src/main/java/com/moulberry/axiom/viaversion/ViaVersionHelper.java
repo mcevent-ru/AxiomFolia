@@ -140,8 +140,8 @@ public class ViaVersionHelper {
     }
 
     public static void readPalettedContainerViaVersion(FriendlyByteBuf friendlyByteBuf, PalettedContainer<BlockState> container, int playerVersion) {
-        Type<DataPalette> from = getPalettedContainerType(playerVersion, container.registry);
-        Type<DataPalette> to = getPalettedContainerType(SharedConstants.getProtocolVersion(), container.registry);
+        Type<DataPalette> from = getPalettedContainerType(playerVersion, container.data.configuration().bitsInMemory());
+        Type<DataPalette> to = getPalettedContainerType(SharedConstants.getProtocolVersion(), container.data.configuration().bitsInMemory());
 
         if (from == to) {
             container.read(friendlyByteBuf);
@@ -167,11 +167,11 @@ public class ViaVersionHelper {
         }
     });
 
-    private static Type<DataPalette> getPalettedContainerType(int version, IdMap<BlockState> registry) {
+    private static Type<DataPalette> getPalettedContainerType(int version, int bits) {
         if (version >= 770) { // 1.21.5
-            return PALETTE_TYPE_1_21_5.getUnchecked(MathUtil.ceilLog2(registry.size()));
+            return PALETTE_TYPE_1_21_5.getUnchecked(bits);
         } else {
-            return PALETTE_TYPE_1_18.getUnchecked(MathUtil.ceilLog2(registry.size()));
+            return PALETTE_TYPE_1_18.getUnchecked(bits);
         }
     }
 

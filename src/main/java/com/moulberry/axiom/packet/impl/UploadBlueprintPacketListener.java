@@ -1,6 +1,7 @@
 package com.moulberry.axiom.packet.impl;
 
 import com.moulberry.axiom.AxiomPaper;
+import com.moulberry.axiom.VersionHelper;
 import com.moulberry.axiom.blueprint.BlueprintIo;
 import com.moulberry.axiom.blueprint.RawBlueprint;
 import com.moulberry.axiom.blueprint.ServerBlueprintManager;
@@ -42,8 +43,8 @@ public class UploadBlueprintPacketListener implements PacketHandler {
         ServerPlayer serverPlayer = ((CraftPlayer)player).getHandle();
 
         if (this.plugin.isMismatchedDataVersion(serverPlayer.getUUID())) {
-            serverPlayer.getServer().execute(() -> {
-                serverPlayer.sendSystemMessage(Component.literal("Axiom+ViaVersion: This feature isn't supported. Switch your client version to " + SharedConstants.VERSION_STRING + " to use this"));
+            serverPlayer.level().getServer().execute(() -> {
+                serverPlayer.sendSystemMessage(Component.literal("Axiom+ViaVersion: This feature isn't supported. Switch your client version to " + VersionHelper.getVersion() + " to use this"));
             });
             friendlyByteBuf.writerIndex(friendlyByteBuf.readerIndex());
             return;
@@ -73,7 +74,7 @@ public class UploadBlueprintPacketListener implements PacketHandler {
 
         String pathName = pathStr.substring(0, pathStr.length()-3);
 
-        serverPlayer.getServer().execute(() -> {
+        serverPlayer.level().getServer().execute(() -> {
             try {
                 Path path = this.plugin.blueprintFolder.resolve(relative);
 
@@ -93,7 +94,7 @@ public class UploadBlueprintPacketListener implements PacketHandler {
                 registry.blueprints().put("/" + pathName, rawBlueprint);
 
                 // Resend manifest
-                ServerBlueprintManager.sendManifest(serverPlayer.getServer().getPlayerList().getPlayers());
+                ServerBlueprintManager.sendManifest(serverPlayer.level().getServer().getPlayerList().getPlayers());
             } catch (Throwable t) {
                 serverPlayer.getBukkitEntity().kick(net.kyori.adventure.text.Component.text(
                         "An error occured while uploading blueprint: " + t.getMessage()));

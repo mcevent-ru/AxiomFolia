@@ -10,7 +10,7 @@ import io.netty.buffer.Unpooled;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.ProblemReporter;
@@ -24,7 +24,7 @@ import java.util.*;
 
 public class RequestEntityDataPacketListener implements PacketHandler {
 
-    public static final ResourceLocation RESPONSE_ID = VersionHelper.createResourceLocation("axiom:response_entity_data");
+    public static final Identifier RESPONSE_ID = VersionHelper.createIdentifier("axiom:response_entity_data");
 
     private final AxiomPaper plugin;
     public RequestEntityDataPacketListener(AxiomPaper plugin) {

@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "com.moulberry.axiom"
-version = "5.0.2+1.21.8"
+version = "5.0.3+1.21.11"
 description = "Serverside component for Axiom on Paper"
 
 java {
@@ -39,12 +39,15 @@ repositories {
 }
 
 dependencies {
-    paperweight.paperDevBundle("1.21.8-R0.1-SNAPSHOT")
+    paperweight.paperDevBundle("1.21.11-R0.1-SNAPSHOT")
     implementation(libs.reflection.remapper)
     implementation(libs.cloud.paper)
 
     // Zstd Compression Library
     implementation(libs.zstd.jni)
+
+    // LuckPerms event integration
+    compileOnly(libs.luckperms)
 
     // ViaVersion support
     compileOnly(libs.viaversion.api)
@@ -62,11 +65,9 @@ dependencies {
 }
 
 tasks {
-    // Configure reobfJar to run when invoking the build task
     assemble {
-        dependsOn(reobfJar)
+        dependsOn(shadowJar)
     }
-
     compileJava {
         options.encoding = Charsets.UTF_8.name() // We want UTF-8 for everything
 
