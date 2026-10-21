@@ -26,9 +26,6 @@ allow-large-payload-for-all-packets: false
 incompatible-data-version: "warn"
 unsupported-axiom-version: "warn"
 
-# Maximum packet size. Must not be less than 30000
-max-block-buffer-packet-size: 0x100000
-
 # Regex for whitelisting worlds
 # The world can only be modified if the regex matches the world's name
 whitelist-world-regex: ""
@@ -39,6 +36,12 @@ blacklist-world-regex: ""
 
 # Block buffer rate-limit (in chunk sections per second), 0 = default limit
 block-buffer-rate-limit: 0
+
+# Tunnel split size
+tunnel-split-size: 31000
+
+# Maximum tunnel packet size
+maximum-tunnel-packet-size: 2097152
 
 # Log large block buffer changes
 log-large-block-buffer-changes: false
@@ -70,7 +73,8 @@ infinite-reach-limit: 256
 log-core-protect-changes: true
 
 # Overrides based on a permission/rank
-# To apply, give the player the axiomlimits.example permission
+# To apply, give the player the permission axiomlimits.{key}
+# Note: 'example' does not work, you must rename it to something else
 limits:
   example:
     # Block buffer rate-limit (in chunk sections per second), 0 = default limit
